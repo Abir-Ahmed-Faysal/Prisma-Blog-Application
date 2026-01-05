@@ -12,8 +12,12 @@ const createPost = async (payload: Omit<Post, "id" | "createdAt" | "updatedAt" |
 
 
 
-const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean, authorIdValue }: { search: string | undefined, arrayOfTags: string[] | [], isFeaturedBoolean: boolean | undefined, statusValue: PostStatus | undefined, authorIdValue: string | undefined }) => {
-
+const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean, authorIdValue, take, skip, page,
+    orderBy }: {
+        search: string | undefined, arrayOfTags: string[] | [], isFeaturedBoolean: boolean | undefined, statusValue: PostStatus | undefined, authorIdValue: string | undefined, take: number, skip: number,
+        orderBy: Record<string, "asc" | "desc">, page: number
+    }) => {
+    console.log("hit here");
     const AndConditions: PostWhereInput[] = []
 
     if (search) {
@@ -69,26 +73,93 @@ const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean
         AndConditions.push({ authorId: authorIdValue })
     }
 
+    console.log("here is all conditions:", AndConditions);
 
 
 
-    const result = await prisma.post.findMany({
+
+    const data = await prisma.post.findMany({
         where: {
             AND: AndConditions
-
-
-
-
-
-        }
+        }, take, skip, orderBy
 
 
 
 
     })
-    return result
+
+    const total = await prisma.post.count({
+        where: {
+            AND: AndConditions
+        }
+    })
+
+
+
+
+
+    return {
+        data,
+        pagination: {
+            total,
+            page,
+            limit: take,
+            totalPage: Math.ceil(total / take)
+
+
+        }
+    }
 }
 
+
+
+
+
+
+const getPostById = async (postId: string) => {
+
+    const rsult = await prisma.post.findUnique(
+        {
+            where: {
+                id: postId
+            }
+        }
+    )
+
+
+    const result = await prisma.$transaction(async (tx) => {
+
+
+
+        await tx.post.update({
+            where: {
+                id: postId
+            }, data: {
+                views: {
+                    increment: 1
+                }
+            }
+        })
+
+        const data = await tx.post.findUnique(
+            {
+                where: {
+                    id: postId
+                }
+            }
+        )
+        return data
+    })
+
+    return result
+
+}
+
+
+
+
+
+
 export const postServices = {
-    createPost, getAllPosts
+    createPost, getAllPosts, getPostById
 }

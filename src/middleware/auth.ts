@@ -43,11 +43,6 @@ export const auth = (...role: Role[]) => {
                     message: "Forbidden Access"
                 })
             }
-
-
-            console.log(session);
-
-
             next()
 
         } catch (error) {
