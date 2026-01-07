@@ -17,7 +17,7 @@ const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean
         search: string | undefined, arrayOfTags: string[] | [], isFeaturedBoolean: boolean | undefined, statusValue: PostStatus | undefined, authorIdValue: string | undefined, take: number, skip: number,
         orderBy: Record<string, "asc" | "desc">, page: number
     }) => {
-    console.log("hit here");
+   
     const AndConditions: PostWhereInput[] = []
 
     if (search) {
@@ -73,7 +73,6 @@ const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean
         AndConditions.push({ authorId: authorIdValue })
     }
 
-    console.log("here is all conditions:", AndConditions);
 
 
 
@@ -82,7 +81,9 @@ const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean
         where: {
             AND: AndConditions
         }, take, skip, orderBy
-
+,include:{
+    _count:{select:{comments:true}}
+}
 
 
 
@@ -118,18 +119,10 @@ const getAllPosts = async ({ search, arrayOfTags, statusValue, isFeaturedBoolean
 
 const getPostById = async (postId: string) => {
 
-    const rsult = await prisma.post.findUnique(
-        {
-            where: {
-                id: postId
-            }
-        }
-    )
+
 
 
     const result = await prisma.$transaction(async (tx) => {
-
-
 
         await tx.post.update({
             where: {
@@ -141,13 +134,36 @@ const getPostById = async (postId: string) => {
             }
         })
 
-        const data = await tx.post.findUnique(
-            {
-                where: {
-                    id: postId
-                }
-            }
-        )
+const data = await tx.post.findUnique({
+  where: {
+    id: postId,
+  },
+  include: {
+    comments: {
+      where: {
+        parentId: null,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        replies: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          include: {
+            replies: true,
+          },
+        },
+      },
+    },
+    _count:{
+        select:{comments:true
+        }
+    }
+  },
+})
+
         return data
     })
 

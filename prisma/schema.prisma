@@ -43,13 +43,13 @@ model Comment {
   authorId String //betterAuth
   postId   String
   parentId String?
-  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id],onDelete: Cascade)
 
   replies    Comment[]     @relation("CommentReplies")
   status     CommentStatus @default(APPROVED)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
-  authorPost Post          @relation(fields: [postId], references: [id])
+  authorPost Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([authorId])
