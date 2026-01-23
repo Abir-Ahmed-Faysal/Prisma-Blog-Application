@@ -1,7 +1,11 @@
+
 import { CommentStatus } from "../../../generated/prisma/enums"
 import { prisma } from "../../lib/prisma"
 import { CreateCommentPayload } from "../../types/comment.dto"
 import { IPayloadUpdate } from "./comment.controller"
+
+
+
 
 
 const postComment = async (payload: CreateCommentPayload) => {
@@ -57,17 +61,48 @@ const getCommentByAuthor = async (authorId: string) => {
 }
 
 
-const updateComment = async (commentId: string,  payload: IPayloadUpdate,authorId: string,) => {
+const updateComment = async (commentId: string, payload: IPayloadUpdate, authorId: string,) => {
     const result = await prisma.comment.findFirst({
         where: { id: commentId, authorId }
     })
-    if(!result){
+    if (!result) {
         throw new Error(" not find")
     }
     return prisma.comment.update({
         where: { id: commentId },
         data: payload
     })
+}
+
+const moderateComment = async (id: string, authorId: string, payload: { status: CommentStatus }) => {
+    const findComment = await prisma.comment.findUniqueOrThrow({
+        where: {
+            id,
+
+        }, select: {
+            id: true,
+            status: true
+        }
+    })
+    if (!findComment) {
+        throw new Error("comment Doesn't find")
+    }
+    if (payload.status === findComment.status) {
+        throw new Error(`${payload.status} already up to date`)
+    }
+
+    return prisma.comment.update({
+        where: {
+            id: findComment.id
+        },
+        data: payload
+    })
+
+
+
+
+
+
 }
 
 
@@ -92,5 +127,5 @@ const deleteComment = async (commentId: string, id: string) => {
 
 
 export const commentServices = {
-    postComment, getCommentById, getCommentByAuthor, deleteComment, updateComment
+    postComment, getCommentById, getCommentByAuthor, deleteComment, updateComment, moderateComment
 }

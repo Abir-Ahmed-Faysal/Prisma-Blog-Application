@@ -2,8 +2,8 @@
 import { Request, Response } from "express"
 import { commentServices } from "./comment.service"
 import { CreateCommentPayload } from "../../types/comment.dto"
-import { success } from "better-auth/*"
 import { CommentStatus } from "../../../generated/prisma/enums"
+
 
 interface CommentRequestBody {
     content: string
@@ -133,6 +133,35 @@ const updateComment = async (req: Request, res: Response) => {
 }
 
 
+const moderateComment = async (req: Request, res: Response) => {
+    try {
+
+        const { commentId } = req.params
+        const authorId = (req.user!).id
+        const payload = req.body
+        if (!commentId || (commentId && typeof commentId !== "string")) {
+            return res.status(400).json({ success: false })
+        }
+
+        if (typeof authorId !== 'string') {
+            return res.status(400).json({
+                status: false,
+                message: "author id not find"
+            })
+        }
+
+
+        const result = await commentServices.moderateComment(commentId, authorId, payload)
+        return res.status(200).json({ success: true, message: "data status successfully updated", date: result })
+    } catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : 'comment update failed due to server error'
+        return res.status(500).json({ success: true, message: errorMessage })
+    }
+}
+
+
+
+
 
 
 const deleteComment = async (req: Request, res: Response) => {
@@ -151,5 +180,5 @@ const deleteComment = async (req: Request, res: Response) => {
 
 
 export const commentController = {
-    postComment, getCommentById, getCommentByAuthor, updateComment, deleteComment
+    postComment, getCommentById, getCommentByAuthor, updateComment, deleteComment, moderateComment
 }

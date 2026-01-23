@@ -3,6 +3,12 @@ import { postServices } from "./post.service"
 import { PostStatus } from "../../../generated/prisma/enums"
 import { paginationSortHelper } from "../../utilities/paginationSortHelper"
 
+import { Role } from "../../types/type"
+import { success } from "better-auth/*"
+import { deleteUser } from "better-auth/api"
+
+
+
 
 const createPost = async (req: Request, res: Response) => {
     const body = req.body
@@ -24,7 +30,7 @@ const createPost = async (req: Request, res: Response) => {
 }
 const getAllPosts = async (req: Request, res: Response) => {
 
-    
+
     const { search, tags, status, authorId, isFeatured } = req.query
     const searchString = typeof search === "string" ? search : undefined
 
@@ -57,8 +63,8 @@ const getAllPosts = async (req: Request, res: Response) => {
 
 const getPostById = async (req: Request, res: Response) => {
     try {
-        const { postId} = req.params
-        console.log('user id here: ******',postId);
+        const { postId } = req.params
+
 
         if (!postId) {
             throw new Error("userId missing")
@@ -66,10 +72,10 @@ const getPostById = async (req: Request, res: Response) => {
 
         const result = await postServices.getPostById(postId)
 
-        return res.status(200).json({ 
-            success: true, 
-            message: "Data retrieved successfully", 
-            data: result 
+        return res.status(200).json({
+            success: true,
+            message: "Data retrieved successfully",
+            data: result
         })
     } catch (error) {
         res.status(500).json({
@@ -80,9 +86,110 @@ const getPostById = async (req: Request, res: Response) => {
 }
 
 
+const getMyPost = async (req: Request, res: Response) => {
+
+    try {
+        const user = req.user
+        if (!user) {
+            throw new Error("you are not authorized")
+        }
+
+        const data = await postServices.getMyPosts(user?.id as string)
+
+        return res.status(200).json({ success: true, message: "the message data retrieve successfully", data })
+    } catch (e) {
+        const errorM = (e instanceof Error) ? e : "internal server error"
+        console.log(e);
+        res.status(500).json({ success: false, error: errorM })
+    }
+}
+
+
+const postUpdate = async (req: Request, res: Response) => {
+
+    try {
+        const user = req.user
+        const { postId } = req.params
+        const payload = req.body
+
+        if (!user) {
+            throw new Error("You are not authorized")
+        }
+
+        const isAdmin = user.role === Role.ADMIN
+
+        if (!postId || typeof postId !== "string") {
+            return res.status(400).json({
+                success: true, message: "post ID not found"
+            })
+        }
+        const data = await postServices.postUpdate(postId, user?.id as string, payload, isAdmin)
+
+        return res.status(200).json({ success: true, message: "successfully data retrieve", data })
+
+
+    } catch (e) {
+        const errorM = (e instanceof Error) ? e : "internal server error"
+        console.log(e);
+        res.status(500).json({ success: false, error: errorM })
+    }
+
+}
+
+
+const postDelete = async (req: Request, res: Response) => {
+    try {
+        const { postId } = req.params
+        const user = req.user
+        if (!user) {
+            return res.status(400).json({ success: false, error: "post Id not found" })
+        }
+
+        if (!postId || (postId && typeof postId !== "string")) {
+            return res.status(400).json({ success: false, error: "post Id not found" })
+        }
+
+        const data = await postServices.postDelete(postId, user?.id as string, user?.role as Role)
+
+
+        return res.status(203).json({
+            success: true, message: "post successfully ", data
+        })
+
+
+
+
+
+
+
+    } catch (error) {
+        const errorM = error instanceof Error ? error : "internal server error due to delete failed"
+        console.log(error);
+        res.status(500).json({ success: false, error: errorM })
+    }
+
+
+
+}
+
+
+const getStats = async (req: Request, res: Response) => {
+    try {
+
+        const data = await postServices.getStats()
+        return res.status(203).json({
+            success: true, message: "post successfully ", data
+        })
+
+    } catch (error) {
+        const errorM = error instanceof Error ? error : "internal server error due to delete failed"
+        console.log(error);
+        res.status(500).json({ success: false, error: errorM })
+    }
+}
 
 
 
 export const postController = {
-    createPost, getAllPosts,getPostById 
+    createPost, getAllPosts, getPostById, getMyPost, postUpdate, postDelete, getStats
 }

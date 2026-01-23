@@ -13,13 +13,14 @@ export const auth = (...role: Role[]) => {
                     headers: fromNodeHeaders(req.headers)
                 }
             )
-
+console.log(session);
             if (!session) {
                 return res.status(401).json({
                     success: false,
                     message: "You are not authorized",
                 })
             }
+
             if (!session.user.emailVerified) {
                 return res.status(401).json({
                     success: false,
